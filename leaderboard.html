@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GalaChain Balance Leaderboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: radial-gradient(1000px 600px at 10% -10%, rgba(74, 222, 128, 0.08), transparent 40%),
+                        radial-gradient(1000px 600px at 110% 0%, rgba(59, 130, 246, 0.08), transparent 40%),
+                        #0b1120;
+            color: #e5e7eb;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #0f172a;
+            border: 1px solid #1f2937;
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, rgba(2,6,23,0.9), rgba(15,23,42,0.9));
+            color: #e5e7eb;
+            padding: 30px;
+            text-align: center;
+            border-bottom: 1px solid #1f2937;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .controls {
+            padding: 16px 24px;
+            background: #0b1220;
+            border-bottom: 1px solid #1f2937;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #22c55e;
+            box-shadow: 0 0 0 3px rgba(34,197,94,0.15);
+        }
+
+        .sort-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .sort-controls select {
+            padding: 10px 12px;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            background: #0f172a;
+            color: #e5e7eb;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            color: #e5e7eb;
+        }
+
+        th {
+            background: #0b1220;
+            padding: 14px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #cbd5e1;
+            border-bottom: 1px solid #1f2937;
+            cursor: pointer;
+            user-select: none;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th:hover {
+            background: #0f172a;
+        }
+
+        th.sortable::after {
+            content: ' ↕';
+            opacity: 0.5;
+        }
+
+        th.sort-asc::after {
+            content: ' ↑';
+            opacity: 1;
+        }
+
+        th.sort-desc::after {
+            content: ' ↓';
+            opacity: 1;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #1f2937;
+            vertical-align: middle;
+        }
+
+        tr:hover {
+            background: #0b1220;
+        }
+
+        .rank {
+            font-weight: bold;
+            color: #22c55e;
+            text-align: center;
+            width: 60px;
+        }
+
+        .address {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .address a {
+            color: #93c5fd;
+            text-decoration: none;
+        }
+
+        .address a:hover {
+            color: #22c55e;
+            text-decoration: underline;
+        }
+
+        .balance {
+            text-align: right;
+            font-weight: 500;
+        }
+
+        .change {
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .positive { color: #22c55e; }
+        .negative { color: #ef4444; }
+        .zero { color: #9ca3af; }
+
+        .summary {
+            padding: 20px 24px;
+            background: #0b1220;
+            border-top: 1px solid #1f2937;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .summary-item {
+            text-align: center;
+        }
+
+        .summary-item h3 {
+            color: #94a3b8;
+            font-size: 1.05rem;
+            margin-bottom: 6px;
+        }
+
+        .summary-item .value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #e5e7eb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #94a3b8;
+        }
+
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #ef4444;
+            background: rgba(239,68,68,0.08);
+            margin: 20px;
+            border: 1px solid rgba(239,68,68,0.3);
+            border-radius: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .sort-controls {
+                justify-content: center;
+            }
+            
+            .address {
+                max-width: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>GalaChain Balance Leaderboard</h1>
+            <p>Compare balance changes between snapshot and current data</p>
+        </div>
+
+        <div class="controls">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search by address or owner type...">
+            </div>
+            <div class="sort-controls">
+                <button id="refreshBtn" style="padding:10px 14px;border:1px solid #334155;background:#0f172a;color:#e5e7eb;border-radius:8px;cursor:pointer">Refresh Current Balances</button>
+                <select id="sortBy">
+                    <option value="usdChange">Sort by Total USD Change</option>
+                    <option value="galaChange">Sort by GALA Change</option>
+                    <option value="gusdcChange">Sort by GUSDC Change</option>
+                    <option value="gusdtChange">Sort by GUSDT Change</option>
+                    <option value="rank">Sort by Rank</option>
+                </select>
+                <select id="sortOrder">
+                    <option value="desc">Descending</option>
+                    <option value="asc">Ascending</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="leaderboardTable">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-sort="rank">Rank</th>
+                        <th class="sortable" data-sort="owner">Owner</th>
+                        <th class="sortable" data-sort="galaChange">GALA Change</th>
+                        <th class="sortable" data-sort="gusdcChange">GUSDC Change</th>
+                        <th class="sortable" data-sort="gusdtChange">GUSDT Change</th>
+                        <th class="sortable" data-sort="usdChange">Total USD Change</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboardBody">
+                    <tr>
+                        <td colspan="6" class="loading">Loading data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="summary" id="summary">
+            <div class="summary-item">
+                <h3>Total Participants</h3>
+                <div class="value" id="totalParticipants">-</div>
+            </div>
+            <div class="summary-item">
+                <h3>Net GALA Change</h3>
+                <div class="value" id="netGalaChange">-</div>
+            </div>
+            <div class="summary-item">
+                <h3>Net GUSDC Change</h3>
+                <div class="value" id="netGusdcChange">-</div>
+            </div>
+            <div class="summary-item">
+                <h3>Net GUSDT Change</h3>
+                <div class="value" id="netGusdtChange">-</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class Leaderboard {
+            constructor() {
+                this.data = [];
+                this.filteredData = [];
+                this.sortColumn = 'usdChange';
+                this.sortOrder = 'desc';
+                this.galaAdjustment = 32894; // subtract this many GALA per address before USD calc
+                this.galaPerOwnerAdjustments = {
+                    '2f7c7e2D248d8784fC186A5Cd2d5aD0e4E6dAE1f': 60000
+                };
+                this.init();
+            }
+
+            async init() {
+                try {
+                    await this.loadData();
+                    this.render();
+                    this.setupEventListeners();
+                } catch (error) {
+                    this.showError('Failed to load data: ' + error.message);
+                }
+            }
+
+            async loadData() {
+                // Load snapshot data
+                const snapshotResponse = await fetch('snapshot.csv', { cache: 'no-cache' });
+                if (!snapshotResponse.ok) throw new Error(`snapshot.csv ${snapshotResponse.status}`);
+                const snapshotText = await snapshotResponse.text();
+                const snapshotData = this.parseCSV(snapshotText);
+
+                // Load current balances data
+                const balancesResponse = await fetch('balances.csv', { cache: 'no-cache' });
+                if (!balancesResponse.ok) throw new Error(`balances.csv ${balancesResponse.status}`);
+                const balancesText = await balancesResponse.text();
+                const balancesData = this.parseCSV(balancesText);
+
+                // Fetch GALA price (USD) from CoinGecko
+                this.galaUsd = await this.fetchGalaPriceUSD();
+
+                // Diagnostics
+                console.log('Parsed snapshot rows:', snapshotData.length);
+                console.log('Parsed balances rows:', balancesData.length);
+                console.log('GALA price (USD):', this.galaUsd);
+
+                // Calculate differences
+                this.data = this.calculateDifferences(snapshotData, balancesData);
+                this.filteredData = [...this.data];
+            }
+
+            async fetchGalaPriceUSD() {
+                try {
+                    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=gala&vs_currencies=usd', { cache: 'no-cache' });
+                    if (!res.ok) throw new Error(`price ${res.status}`);
+                    const json = await res.json();
+                    const price = json && json.gala && typeof json.gala.usd === 'number' ? json.gala.usd : 0;
+                    return price;
+                } catch (e) {
+                    console.warn('Failed to fetch GALA price; defaulting to 0. Error:', e);
+                    return 0;
+                }
+            }
+
+            parseCSV(text) {
+                if (!text) return [];
+                const lines = text.replace(/\r\n?/g, '\n').split('\n').filter(l => l.trim().length > 0);
+                if (lines.length === 0) return [];
+                let headers = lines[0].split(',').map(h => h.trim());
+                if (headers.length && headers[0].charCodeAt(0) === 0xFEFF) {
+                    headers[0] = headers[0].replace(/^\uFEFF/, '');
+                }
+                const data = [];
+
+                for (let i = 1; i < lines.length; i++) {
+                    const values = lines[i].split(',');
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        const v = values[index] !== undefined ? values[index] : '';
+                        row[header] = (v + '').trim();
+                    });
+                    if (row['\uFEFFowner'] && !row['owner']) {
+                        row['owner'] = row['\uFEFFowner'];
+                    }
+                    if (row['owner']) {
+                        row['owner'] = this.normalizeOwner(row['owner']);
+                    }
+                    data.push(row);
+                }
+
+                return data;
+            }
+
+            normalizeOwner(owner) {
+                if (!owner) return '';
+                let o = String(owner).trim();
+                if (o.charCodeAt(0) === 0xFEFF) o = o.replace(/^\uFEFF/, '');
+                return o;
+            }
+
+            calculateDifferences(snapshotData, balancesData) {
+                const toNumber = (v) => {
+                    const n = parseFloat((v || '0').toString().replace(/\r|\s/g, ''));
+                    return Number.isFinite(n) ? n : 0;
+                };
+
+                const differences = [];
+
+                // Create maps for quick lookup
+                const snapshotMap = new Map();
+                snapshotData.forEach(row => {
+                    if (row && row.owner) snapshotMap.set(this.normalizeOwner(row.owner), row);
+                });
+                const balanceMap = new Map();
+                balancesData.forEach(row => {
+                    if (row && row.owner) balanceMap.set(this.normalizeOwner(row.owner), row);
+                });
+
+                // Union of owners from both files
+                const owners = new Set([...snapshotMap.keys(), ...balanceMap.keys()]);
+                console.log('Owners in snapshot:', snapshotMap.size, 'Owners in balances:', balanceMap.size, 'Union:', owners.size);
+
+                owners.forEach(owner => {
+                    const snap = snapshotMap.get(owner) || { GALA: '0', GUSDC: '0', GUSDT: '0' };
+                    const curr = balanceMap.get(owner) || { GALA: '0', GUSDC: '0', GUSDT: '0' };
+
+                    let galaChange = toNumber(curr.GALA) - toNumber(snap.GALA);
+                    const gusdcChange = toNumber(curr.GUSDC) - toNumber(snap.GUSDC);
+                    const gusdtChange = toNumber(curr.GUSDT) - toNumber(snap.GUSDT);
+                    // Apply global and per-owner GALA adjustments for both display and USD calc
+                    const ownerAdj = this.getOwnerGalaAdjustment(owner);
+                    galaChange = galaChange - (this.galaAdjustment || 0) - ownerAdj;
+                    const totalChange = galaChange + gusdcChange + gusdtChange;
+                    const adjustedGalaForUsd = galaChange;
+                    const usdChange = adjustedGalaForUsd * (this.galaUsd || 0) + gusdcChange + gusdtChange;
+
+                    differences.push({
+                        owner,
+                        galaChange,
+                        gusdcChange,
+                        gusdtChange,
+                        totalChange,
+                        usdChange,
+                        snapshotGala: toNumber(snap.GALA),
+                        currentGala: toNumber(curr.GALA),
+                        snapshotGusdc: toNumber(snap.GUSDC),
+                        currentGusdc: toNumber(curr.GUSDC),
+                        snapshotGusdt: toNumber(snap.GUSDT),
+                        currentGusdt: toNumber(curr.GUSDT)
+                    });
+                });
+
+                // Sort by USD change descending
+                differences.sort((a, b) => b.usdChange - a.usdChange);
+                console.log('Computed differences rows:', differences.length);
+                return differences;
+            }
+
+            render() {
+                this.renderTable();
+                this.renderSummary();
+            }
+
+            renderTable() {
+                const tbody = document.getElementById('leaderboardBody');
+                tbody.innerHTML = '';
+
+                if (this.filteredData.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="error">No rows found. Ensure `snapshot.csv` and `balances.csv` exist and have headers: owner, GALA, GUSDC, GUSDT.</td></tr>';
+                    return;
+                }
+
+                this.filteredData.forEach((row, index) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="rank">${index + 1}</td>
+                        <td class="address">${this.buildOwnerLink(row.owner)}</td>
+                        <td class="balance change ${this.getChangeClass(row.galaChange)}">${this.formatChange(row.galaChange)}</td>
+                        <td class="balance change ${this.getChangeClass(row.gusdcChange)}">${this.formatChange(row.gusdcChange)}</td>
+                        <td class="balance change ${this.getChangeClass(row.gusdtChange)}">${this.formatChange(row.gusdtChange)}</td>
+                        <td class="balance change ${this.getChangeClass(row.usdChange)}">${this.formatCurrency(row.usdChange)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            renderSummary() {
+                const totalParticipants = this.data.length;
+                const netGalaChange = this.data.reduce((sum, row) => sum + row.galaChange, 0);
+                const netGusdcChange = this.data.reduce((sum, row) => sum + row.gusdcChange, 0);
+                const netGusdtChange = this.data.reduce((sum, row) => sum + row.gusdtChange, 0);
+                const netUsdChange = this.data.reduce((sum, row) => sum + row.usdChange, 0);
+
+                document.getElementById('totalParticipants').textContent = totalParticipants;
+                document.getElementById('netGalaChange').textContent = this.formatChange(netGalaChange);
+                document.getElementById('netGusdcChange').textContent = this.formatChange(netGusdcChange);
+                document.getElementById('netGusdtChange').textContent = this.formatChange(netGusdtChange);
+
+                let priceBadge = document.getElementById('priceBadge');
+                if (!priceBadge) {
+                    priceBadge = document.createElement('div');
+                    priceBadge.id = 'priceBadge';
+                    priceBadge.style.textAlign = 'center';
+                    priceBadge.style.padding = '12px 0 24px 0';
+                    priceBadge.style.color = '#495057';
+                    document.querySelector('.container').appendChild(priceBadge);
+                }
+                priceBadge.textContent = `GALA = $${(this.galaUsd || 0).toFixed(4)}  |  Net USD Change = ${this.formatCurrency(netUsdChange)}  |  GALA adjustment per address: -${(this.galaAdjustment || 0).toLocaleString()}`;
+            }
+
+            formatOwner(owner) {
+                if (owner.startsWith('eth|')) {
+                    return owner.substring(4);
+                }
+                return owner;
+            }
+
+            buildOwnerLink(owner) {
+                const href = `https://galascan.gala.com/wallet/${encodeURIComponent(owner)}`;
+                const label = this.formatOwner(owner);
+                return `<a href="${href}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+            }
+
+            formatChange(value) {
+                if (value === 0) return '0';
+                const sign = value > 0 ? '+' : '';
+                return sign + value.toFixed(2);
+            }
+
+            formatCurrency(value) {
+                const sign = value > 0 ? '+' : value < 0 ? '-' : '';
+                const abs = Math.abs(value);
+                return `${sign}$${abs.toFixed(2)}`;
+            }
+
+            getChangeClass(value) {
+                if (value > 0) return 'positive';
+                if (value < 0) return 'negative';
+                return 'zero';
+            }
+
+            getOwnerGalaAdjustment(owner) {
+                if (!this.galaPerOwnerAdjustments) return 0;
+                for (const key in this.galaPerOwnerAdjustments) {
+                    if (!Object.prototype.hasOwnProperty.call(this.galaPerOwnerAdjustments, key)) continue;
+                    // Match either exact owner key or the tail address without prefix
+                    if (owner === key || owner.endsWith(key)) {
+                        const val = this.galaPerOwnerAdjustments[key];
+                        return typeof val === 'number' ? val : 0;
+                    }
+                }
+                return 0;
+            }
+
+            setupEventListeners() {
+                // Search functionality
+                document.getElementById('searchInput').addEventListener('input', (e) => {
+                    this.filter(e.target.value);
+                });
+
+                // Refresh balances
+                const refreshBtn = document.getElementById('refreshBtn');
+                refreshBtn.addEventListener('click', async () => {
+                    refreshBtn.disabled = true;
+                    refreshBtn.textContent = 'Refreshing…';
+                    try {
+                        const res = await fetch('/api/refresh', { method: 'POST' });
+                        const json = await res.json().catch(() => ({}));
+                        console.log('Refresh response:', json);
+                        // After server writes balances.csv, reload data
+                        await this.loadData();
+                        this.render();
+                    } catch (e) {
+                        alert('Failed to refresh balances. Ensure the server was started with serve.py');
+                    } finally {
+                        refreshBtn.disabled = false;
+                        refreshBtn.textContent = 'Refresh Current Balances';
+                    }
+                });
+
+                // Sort functionality
+                document.getElementById('sortBy').addEventListener('change', (e) => {
+                    this.sortColumn = e.target.value;
+                    this.sort();
+                });
+
+                document.getElementById('sortOrder').addEventListener('change', (e) => {
+                    this.sortOrder = e.target.value;
+                    this.sort();
+                });
+
+                // Table header sorting
+                document.querySelectorAll('th.sortable').forEach(th => {
+                    th.addEventListener('click', () => {
+                        const column = th.dataset.sort;
+                        if (this.sortColumn === column) {
+                            this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+                        } else {
+                            this.sortColumn = column;
+                            this.sortOrder = 'desc';
+                        }
+                        this.updateSortControls();
+                        this.sort();
+                    });
+                });
+            }
+
+            filter(searchTerm) {
+                const term = searchTerm.toLowerCase();
+                this.filteredData = this.data.filter(row => 
+                    row.owner.toLowerCase().includes(term)
+                );
+                this.renderTable();
+            }
+
+            sort() {
+                this.filteredData.sort((a, b) => {
+                    let aVal = a[this.sortColumn];
+                    let bVal = b[this.sortColumn];
+                    
+                    if (this.sortColumn === 'owner') {
+                        aVal = aVal.toLowerCase();
+                        bVal = bVal.toLowerCase();
+                    }
+
+                    if (this.sortOrder === 'asc') {
+                        return aVal > bVal ? 1 : -1;
+                    } else {
+                        return aVal < bVal ? 1 : -1;
+                    }
+                });
+
+                this.updateSortHeaders();
+                this.renderTable();
+            }
+
+            updateSortControls() {
+                document.getElementById('sortBy').value = this.sortColumn;
+                document.getElementById('sortOrder').value = this.sortOrder;
+            }
+
+            updateSortHeaders() {
+                document.querySelectorAll('th').forEach(th => {
+                    th.classList.remove('sort-asc', 'sort-desc');
+                    if (th.dataset.sort === this.sortColumn) {
+                        th.classList.add(this.sortOrder === 'asc' ? 'sort-asc' : 'sort-desc');
+                    }
+                });
+            }
+
+            showError(message) {
+                const tbody = document.getElementById('leaderboardBody');
+                tbody.innerHTML = `<tr><td colspan="6" class="error">${message}</td></tr>`;
+            }
+        }
+
+        // Initialize the leaderboard when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new Leaderboard();
+        });
+    </script>
+</body>
+</html>
