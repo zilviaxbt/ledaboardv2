@@ -1,5 +1,7 @@
 Instructions: 
+
 Run script: python app.py
+
 Stop: Cntrl+C OR Get-Process -Name python -ErrorAction SilentlyContinue | Stop-Process -Force
 
 View the web UI at: http://localhost:8000/leaderboard.html
