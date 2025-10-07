@@ -1,3 +1,5 @@
+EDIT: There may be other additional wallets that were not included in the snapshot this program uses. This is only a partial list of wallets that were originally on the doc as some wallets had complicated tx's that would goof up the calculations.
+
 Instructions: 
 
 Run script: python app.py
@@ -23,3 +25,4 @@ eth|FBc1e9e5A82F555c445F17c95fB4B96Bd05c2047 was not added as it was sent gala t
 eth|B951E44209E52Eae85C9E2f4Af62B8bc8bad9fC2 was not added, as it was the address that sent us the gala, the numbers would be messed up
 
 client|64f8caf887fd8551315d8509 is messed up as well as its not a new wallet and I think it's factoring in the allowance somewhere(cant see in screenshot but its negative 10k USD)
+
